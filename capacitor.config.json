@@ -1,0 +1,14 @@
+{
+  "appId": "com.pocketinventoryhub.app",
+  "appName": "Pocket Inventory",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "hostname": "com.pocketinventoryhub.app"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}

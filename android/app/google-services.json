@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1012843953372",
+    "project_id": "good-knight-boutique",
+    "storage_bucket": "good-knight-boutique.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012843953372:android:f28052a88f02b6cae94819",
+        "android_client_info": {
+          "package_name": "com.pocketinventoryhub.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1012843953372-afmpasl62rv1uc1fu12j4rslik5abb98.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCN__p2SV51sZrkBRl1sH_K-47PzQ0Zcgw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1012843953372-afmpasl62rv1uc1fu12j4rslik5abb98.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
