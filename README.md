@@ -1,39 +1,47 @@
-**Welcome to your Base44 project** 
+# Pocket Inventory Hub
 
-**About**
+Inventory management platform for managing products, creators, and storefront data.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+## Tech Stack
 
-This project contains everything you need to run your app locally.
+- React + Vite
+- Capacitor Android App
+- Firebase Firestore
+- Firebase Storage
+- Stripe Integration
+- Cloudflare Workers (if applicable)
 
-**Edit the code in your local development environment**
+## Project Structure
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+/
+├── src/              # Web application source
+├── android/          # Capacitor Android project
+├── functions/        # Firebase functions
+├── docs/             # Project documentation
 
-**Prerequisites:** 
+## Development
 
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+Install dependencies:
 
-```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
+npm install
 
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
-```
+Run development server:
 
-Run the app: `npm run dev`
+npm run dev
 
-**Publish your changes**
+## Environment Variables
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+Create `.env.local` with required Firebase/API configuration.
 
-**Docs & Support**
+## Current Features
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+- Product management
+- Homepage content management
+- Firestore-backed configuration
+- Stripe product integration
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+## Roadmap
+
+- Mobile admin controls
+- Automated product synchronization
+- Creator tools
