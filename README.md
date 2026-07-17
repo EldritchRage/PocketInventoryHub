@@ -1,6 +1,6 @@
 # Pocket Inventory Hub
 
-Inventory management platform for managing products, creators, and storefront data.
+Inventory management platform for managing products, and storefront data.
 
 ## Tech Stack
 
