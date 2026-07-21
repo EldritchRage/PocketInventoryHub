@@ -1,5 +1,5 @@
 import React from 'react';
-import { UploadCloud, Palette, Star, Home } from 'lucide-react';
+import { Palette, Star, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
     Dialog,

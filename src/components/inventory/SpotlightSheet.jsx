@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Check } from 'lucide-react';
+import { Star } from 'lucide-react';
 import {
     Dialog,
     DialogContent,

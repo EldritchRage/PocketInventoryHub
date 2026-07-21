@@ -15,6 +15,8 @@ import { db, storage, auth as firebaseAuth } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { CATEGORY_MAP } from '@/lib/categories';
 import { appParams } from '@/lib/app-params';
+import { buildCompatibleProductWrite, normalizeProductForRead } from '@/lib/product-contract';
+import { buildStripeSyncRequest, normalizeStripeSyncResponse } from '@/lib/stripe-contract';
 
 const SORT_KEY = 'pih_sort_mode';
 
@@ -54,7 +56,7 @@ export default function useProducts() {
     useEffect(() => {
         const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
         const unsub = onSnapshot(q, (snap) => {
-            const docs = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+            const docs = snap.docs.map(d => normalizeProductForRead({ firestoreId: d.id, ...d.data() }));
             setRawProducts(docs);
             setLoading(false);
         });
@@ -74,22 +76,12 @@ export default function useProducts() {
             throw new Error('Backend URL is not configured in .env.local');
         }
 
-        // Convert price to cents as required by your worker
-        const unitAmount = Math.round(Number(product.price) * 100);
-
         const response = await fetch(baseUrl, { // Removed /api/stripe-sync as your worker handles all POSTs
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                api_key: apiKey,
-                stripeProductId: product.stripeProductId || null,
-                name: product.name,
-                description: product.description || '',
-                unit_amount: unitAmount,
-                currency: 'usd',
-            }),
+            body: JSON.stringify(buildStripeSyncRequest(product, apiKey)),
         });
 
         if (!response.ok) {
@@ -97,7 +89,7 @@ export default function useProducts() {
             throw new Error(err.error || 'Failed to sync with Stripe');
         }
 
-        return await response.json();
+        return normalizeStripeSyncResponse(await response.json());
     }, []);
 
     const uploadImageIfNeeded = async (imageFile) => {
@@ -149,16 +141,18 @@ export default function useProducts() {
         delete toSave.weight;
         delete toSave.categoryId;
 
-        const ref = await addDoc(collection(db, 'products'), {
+        const ref = await addDoc(collection(db, 'products'), buildCompatibleProductWrite({
             ...toSave,
             category: categoryId || null,
-            creatorId: firebaseAuth.currentUser.uid,
+            categoryId: categoryId || null,
+            creatorId: null,
             imageUrl: imageUrls[0] || '', // Primary image
             imageUrls: imageUrls,
+            published: false,
+            status: 'draft',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-            published: false,
-        });
+        }, { createdByUid: firebaseAuth.currentUser.uid }));
         return ref.id;
     }, []);
 
@@ -212,13 +206,14 @@ export default function useProducts() {
             }
         }
 
-        await updateDoc(doc(db, 'products', firestoreId), {
+        await updateDoc(doc(db, 'products', firestoreId), buildCompatibleProductWrite({
             ...toSave,
             category: categoryId || null,
+            categoryId: categoryId || null,
             imageUrl: imageUrls[0] || '',
             imageUrls: imageUrls,
             updatedAt: serverTimestamp(),
-        });
+        }, { createdByUid: currentProduct?.createdByUid || firebaseAuth.currentUser.uid }));
 
         // delete old image if it was from Firebase Storage and a new image replaced it
         if (imageFile && oldImageUrl && oldImageUrl !== imageUrl && oldImageUrl.startsWith('https://firebasestorage.googleapis.com')) {
@@ -309,9 +304,12 @@ export default function useProducts() {
         await Promise.all(
             syncResults.map((res) => {
                 const updateData = {
+                    schemaVersion: 2,
                     stripeProductId: res.stripeProductId,
                     stripePriceId: res.stripePriceId,
+                    stripe: { productId: res.stripeProductId, priceId: res.stripePriceId },
                     published: true,
+                    status: 'published',
                     publishedAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                 };

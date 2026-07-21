@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, User, Star, Layout } from 'lucide-react';
+import { ArrowLeft, User, Star, Layout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useHomepageConfig from '@/hooks/useHomepageConfig';
 import HeroEditor from '@/components/homepage/HeroEditor';
 import AboutEditor from '@/components/homepage/AboutEditor';
 import FeaturedManager from '@/components/homepage/FeaturedManager';
-import { toast } from 'sonner';
 
 export default function HomepageEditor() {
     const navigate = useNavigate();

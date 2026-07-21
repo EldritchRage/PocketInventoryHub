@@ -12,6 +12,8 @@ import {
     serverTimestamp,
 } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
+import { auth as firebaseAuth } from '@/lib/firebase';
+import { normalizeHomepageForRead } from '@/lib/homepage-contract';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'sonner';
 
@@ -25,7 +27,7 @@ export default function useHomepageConfig() {
         const unsub = onSnapshot(doc(db, 'homepage', 'config'),
             (snap) => {
                 if (snap.exists()) {
-                    setConfig(snap.data());
+                    setConfig(normalizeHomepageForRead(snap.data()));
                 } else {
                     // Initialize if doesn't exist
                     const initialConfig = {
@@ -45,7 +47,7 @@ export default function useHomepageConfig() {
                     setDoc(doc(db, 'homepage', 'config'), initialConfig).catch(e => {
                         console.error('Failed to initialize homepage config', e);
                     });
-                    setConfig(initialConfig);
+                    setConfig(normalizeHomepageForRead(initialConfig));
                 }
                 setLoading(false);
             },
@@ -93,11 +95,14 @@ export default function useHomepageConfig() {
             imageUrl = await uploadImage(imageFile, 'hero');
         }
         await updateDoc(doc(db, 'homepage', 'config'), {
+            schemaVersion: 2,
             'hero.headline': heroData.headline,
             'hero.subheading': heroData.subheading,
             'hero.buttonText': heroData.buttonText,
             'hero.buttonLink': heroData.buttonLink,
             'hero.image': imageUrl,
+            updatedByUid: firebaseAuth.currentUser?.uid || null,
+            updatedAt: serverTimestamp(),
         });
     }, []);
 
@@ -107,8 +112,11 @@ export default function useHomepageConfig() {
             imageUrl = await uploadImage(imageFile, 'about');
         }
         await updateDoc(doc(db, 'homepage', 'config'), {
+            schemaVersion: 2,
             'about.text': aboutData.text,
             'about.image': imageUrl,
+            updatedByUid: firebaseAuth.currentUser?.uid || null,
+            updatedAt: serverTimestamp(),
         });
     }, []);
 
