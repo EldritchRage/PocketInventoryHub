@@ -18,12 +18,7 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
-    console.log('FeaturedManager render state:', {
-        productsLoading,
-        hasProducts: !!products,
-        productsCount: products?.length,
-        featuredItemsCount: featuredItems?.length
-    });
+    const items = Array.isArray(featuredItems) ? featuredItems : [];
 
     if (productsLoading) {
         return (
@@ -37,17 +32,17 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
     const handleDragEnd = (result) => {
         if (!result.destination) return;
 
-        const items = Array.from(featuredItems);
-        const [reorderedItem] = items.splice(result.source.index, 1);
-        items.splice(result.destination.index, 0, reorderedItem);
+        const nextItems = Array.from(items);
+        const [reorderedItem] = nextItems.splice(result.source.index, 1);
+        nextItems.splice(result.destination.index, 0, reorderedItem);
 
-        onReorder(items);
+        onReorder(nextItems);
     };
 
     if (!products) return null;
 
     const filteredProducts = products.filter(p =>
-        !featuredItems.find(f => f.productId === p.firestoreId) &&
+        !items.find(f => f.productId === p.firestoreId) &&
         (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          p.category?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -145,7 +140,7 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                             ref={provided.innerRef}
                             className="space-y-2"
                         >
-                            {featuredItems.map((item, index) => {
+                            {items.map((item, index) => {
                                 const product = products.find(p => p.firestoreId === item.productId);
                                 return (
                                     <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -188,7 +183,7 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                             })}
                             {provided.placeholder}
 
-                            {featuredItems.length === 0 && (
+                            {items.length === 0 && (
                                 <div className="py-12 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-center px-6 bg-secondary/5">
                                     <Star className="h-8 w-8 text-muted-foreground/30 mb-2" />
                                     <p className="text-sm font-medium text-muted-foreground">No featured products yet</p>

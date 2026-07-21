@@ -54,8 +54,15 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const logout = async () => {
+    await signOut(firebaseAuth)
+    setUser(null)
+    setAuthError({ type: 'auth_required' })
+    navigateToLogin('/login')
+  }
+
   return (
-    <AuthContext.Provider value={{ isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user }}>
+    <AuthContext.Provider value={{ isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, logout }}>
       {children}
     </AuthContext.Provider>
   )

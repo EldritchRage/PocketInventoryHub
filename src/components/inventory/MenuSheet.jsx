@@ -1,6 +1,7 @@
 import React from 'react';
-import { Palette, Star, Home } from 'lucide-react';
+import { Palette, Star, Home, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import {
     Dialog,
     DialogContent,
@@ -10,10 +11,12 @@ import {
 
 export default function MenuSheet({ open, onClose, onTheme, onSpotlight }) {
     const navigate = useNavigate();
+    const { logout } = useAuth();
     const items = [
         { icon: Home, label: 'Edit Homepage', action: () => navigate('/homepage') },
         { icon: Star, label: 'Seasonal Spotlight', action: onSpotlight },
         { icon: Palette, label: 'Change Theme', action: onTheme },
+        { icon: LogOut, label: 'Log Out', action: logout, destructive: true },
     ];
 
     return (
@@ -26,11 +29,11 @@ export default function MenuSheet({ open, onClose, onTheme, onSpotlight }) {
                     {items.map(item => (
                         <button
                             key={item.label}
-                            onClick={() => {
-                                item.action();
+                            onClick={async () => {
+                                await item.action();
                                 onClose(false);
                             }}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-secondary transition-colors duration-150"
+                            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-secondary transition-colors duration-150 ${item.destructive ? 'text-destructive' : ''}`}
                         >
                             <item.icon className="h-4.5 w-4.5 text-muted-foreground" />
                             <span>{item.label}</span>

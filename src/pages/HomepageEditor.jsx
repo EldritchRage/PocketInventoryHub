@@ -41,6 +41,9 @@ export default function HomepageEditor() {
             </header>
 
             <main className="max-w-lg mx-auto px-4 py-6">
+                <p className="text-sm text-muted-foreground mb-5">
+                    Changes here control the hero, about, and featured-product sections on psitsavibe.com.
+                </p>
                 <Tabs defaultValue="hero" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-8">
                         <TabsTrigger value="hero" className="flex items-center gap-2">

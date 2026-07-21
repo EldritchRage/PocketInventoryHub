@@ -10,6 +10,7 @@ export function buildStripeSyncRequest(product = {}, apiKey) {
             : null,
         name: String(product.name || '').trim(),
         description: String(product.description || ''),
+        imageUrl: typeof product.imageUrl === 'string' && product.imageUrl.startsWith('https://') ? product.imageUrl : null,
         unit_amount: unitAmount,
         currency: product.currency || 'usd',
     };
