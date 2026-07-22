@@ -16,9 +16,7 @@ export default function HomepageEditor() {
         loading,
         updateHero,
         updateAbout,
-        addFeaturedProduct,
-        removeFeaturedProduct,
-        reorderFeaturedProducts
+        publishFeaturedProducts
     } = useHomepageConfig();
 
     if (loading) {
@@ -72,9 +70,7 @@ export default function HomepageEditor() {
                         <div className="py-4">
                             <FeaturedManager
                                 featuredItems={featuredProducts}
-                                onAdd={addFeaturedProduct}
-                                onRemove={removeFeaturedProduct}
-                                onReorder={reorderFeaturedProducts}
+                                onPublish={publishFeaturedProducts}
                             />
                         </div>
                     </TabsContent>

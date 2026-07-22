@@ -169,6 +169,7 @@ export default function useProducts() {
 
         // Get existing images
         const currentProduct = rawProducts.find(p => p.firestoreId === firestoreId);
+        const oldImageUrl = currentProduct?.imageUrl || '';
         let existingImageUrls = currentProduct?.imageUrls || (currentProduct?.imageUrl ? [currentProduct.imageUrl] : []);
 
         let imageUrls = rest.imageUrls || existingImageUrls;
@@ -207,6 +208,14 @@ export default function useProducts() {
         }
 
         await updateDoc(doc(db, 'products', firestoreId), buildCompatibleProductWrite({
+            published: currentProduct?.published === true,
+            status: currentProduct?.status || (currentProduct?.published ? 'published' : 'draft'),
+            stripeProductId: toSave.stripeProductId || currentProduct?.stripeProductId || null,
+            stripePriceId: toSave.stripePriceId || currentProduct?.stripePriceId || null,
+            stripe: {
+                productId: toSave.stripeProductId || currentProduct?.stripeProductId || null,
+                priceId: toSave.stripePriceId || currentProduct?.stripePriceId || null,
+            },
             ...toSave,
             category: categoryId || null,
             categoryId: categoryId || null,
@@ -216,7 +225,7 @@ export default function useProducts() {
         }, { createdByUid: currentProduct?.createdByUid || firebaseAuth.currentUser.uid }));
 
         // delete old image if it was from Firebase Storage and a new image replaced it
-        if (imageFile && oldImageUrl && oldImageUrl !== imageUrl && oldImageUrl.startsWith('https://firebasestorage.googleapis.com')) {
+        if ((imageFile || imageFiles?.length) && oldImageUrl && oldImageUrl !== imageUrls[0] && oldImageUrl.startsWith('https://firebasestorage.googleapis.com')) {
             try {
                 const parts = oldImageUrl.split('/o/');
                 if (parts[1]) {
@@ -230,7 +239,55 @@ export default function useProducts() {
                 console.warn('Failed to delete old storage object', err);
             }
         }
-    }, []);
+    }, [rawProducts, syncProductWithStripe]);
+
+    const publishProduct = useCallback(async (firestoreId) => {
+        if (!firebaseAuth.currentUser) throw new Error('You must be signed in to publish a product');
+        const product = rawProducts.find(p => p.firestoreId === firestoreId);
+        if (!product) throw new Error('Product not found');
+        const syncRes = await syncProductWithStripe(product);
+        await updateDoc(doc(db, 'products', firestoreId), {
+            schemaVersion: 2,
+            stripeProductId: syncRes.stripeProductId,
+            stripePriceId: syncRes.stripePriceId,
+            stripe: { productId: syncRes.stripeProductId, priceId: syncRes.stripePriceId },
+            published: true,
+            status: 'published',
+            publishedAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            ...(syncRes.variants ? { variants: syncRes.variants } : {}),
+        });
+    }, [rawProducts, syncProductWithStripe]);
+
+    const unpublishProduct = useCallback(async (firestoreId) => {
+        if (!firebaseAuth.currentUser) throw new Error('You must be signed in to unpublish a product');
+        const product = rawProducts.find(p => p.firestoreId === firestoreId);
+        if (!product) throw new Error('Product not found');
+
+        if (product.stripeProductId) {
+            const baseUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL;
+            const response = await fetch(baseUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    api_key: import.meta.env.VITE_STRIPE_WORKER_API_KEY,
+                    action: 'unpublish',
+                    stripeProductId: product.stripeProductId,
+                }),
+            });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ error: 'Stripe unpublish failed' }));
+                throw new Error(error.error || 'Could not unpublish Stripe product');
+            }
+        }
+
+        await updateDoc(doc(db, 'products', firestoreId), {
+            published: false,
+            status: 'draft',
+            unpublishedAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+    }, [rawProducts]);
 
     const deleteProduct = useCallback(async (firestoreId) => {
         if (!firebaseAuth.currentUser) {
@@ -343,6 +400,8 @@ export default function useProducts() {
         deleteProduct,
         updateStripeIds,
         publishInventory,
+        publishProduct,
+        unpublishProduct,
         toggleSpotlight,
     };
 }

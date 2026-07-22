@@ -145,6 +145,34 @@ export default function useHomepageConfig() {
         await batch.commit();
     }, []);
 
+    const publishFeaturedProducts = useCallback(async (productIds) => {
+        if (!firebaseAuth.currentUser) {
+            throw new Error('You must be signed in to publish featured products');
+        }
+        const uniqueIds = [...new Set(productIds.filter(Boolean))];
+        const batch = writeBatch(db);
+        const selected = new Set(uniqueIds);
+
+        featuredProducts.forEach((item) => {
+            if (!selected.has(item.productId)) {
+                batch.delete(doc(db, 'homepage', 'config', 'featured_products', item.id));
+            }
+        });
+        uniqueIds.forEach((productId, index) => {
+            batch.set(doc(db, 'homepage', 'config', 'featured_products', productId), {
+                productId,
+                displayOrder: index,
+                updatedAt: serverTimestamp(),
+            }, { merge: true });
+        });
+        batch.update(doc(db, 'homepage', 'config'), {
+            featuredPublishedAt: serverTimestamp(),
+            updatedByUid: firebaseAuth.currentUser.uid,
+            updatedAt: serverTimestamp(),
+        });
+        await batch.commit();
+    }, [featuredProducts]);
+
     return {
         config,
         featuredProducts,
@@ -154,5 +182,6 @@ export default function useHomepageConfig() {
         addFeaturedProduct,
         removeFeaturedProduct,
         reorderFeaturedProducts,
+        publishFeaturedProducts,
     };
 }

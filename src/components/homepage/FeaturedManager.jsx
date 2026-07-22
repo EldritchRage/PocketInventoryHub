@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Plus, GripVertical, Trash2, Search, Loader2 } from 'lucide-react';
+import { Plus, GripVertical, Trash2, Search, Loader2, Star, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,12 +13,19 @@ import {
 import useProducts from '@/hooks/useProducts';
 import { toast } from 'sonner';
 
-export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReorder }) {
+export default function FeaturedManager({ featuredItems, onPublish }) {
     const { products, loading: productsLoading } = useProducts();
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [draftIds, setDraftIds] = useState([]);
+    const [dirty, setDirty] = useState(false);
+    const [publishing, setPublishing] = useState(false);
 
     const items = Array.isArray(featuredItems) ? featuredItems : [];
+
+    useEffect(() => {
+        if (!dirty) setDraftIds(items.map(item => item.productId));
+    }, [items, dirty]);
 
     if (productsLoading) {
         return (
@@ -32,36 +39,38 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
     const handleDragEnd = (result) => {
         if (!result.destination) return;
 
-        const nextItems = Array.from(items);
+        const nextItems = Array.from(draftIds);
         const [reorderedItem] = nextItems.splice(result.source.index, 1);
         nextItems.splice(result.destination.index, 0, reorderedItem);
-
-        onReorder(nextItems);
+        setDraftIds(nextItems);
+        setDirty(true);
     };
 
     if (!products) return null;
 
     const filteredProducts = products.filter(p =>
-        !items.find(f => f.productId === p.firestoreId) &&
+        p.published === true && p.status === 'published' &&
         (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          p.category?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const handleAdd = async (productId) => {
-        try {
-            await onAdd(productId);
-            toast.success('Product added to featured');
-        } catch (err) {
-            toast.error('Failed to add product');
-        }
+    const handleToggle = (productId) => {
+        setDraftIds(current => current.includes(productId)
+            ? current.filter(id => id !== productId)
+            : [...current, productId]);
+        setDirty(true);
     };
 
-    const handleRemove = async (docId) => {
+    const handlePublish = async () => {
+        setPublishing(true);
         try {
-            await onRemove(docId);
-            toast.success('Product removed from featured');
+            await onPublish(draftIds);
+            setDirty(false);
+            toast.success('Featured products published to the website');
         } catch (err) {
-            toast.error('Failed to remove product');
+            toast.error(err?.message || 'Failed to publish featured products');
+        } finally {
+            setPublishing(false);
         }
     };
 
@@ -73,6 +82,11 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                     <p className="text-xs text-muted-foreground">Rearrange or add products to the homepage slider</p>
                 </div>
 
+                <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="h-9 rounded-lg gap-2" onClick={handlePublish} disabled={publishing || !dirty}>
+                    {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    <span>Publish Featured</span>
+                </Button>
                 <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
                     <DialogTrigger asChild>
                         <Button size="sm" className="h-9 rounded-lg gap-2">
@@ -111,14 +125,13 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                                             <p className="text-sm font-medium truncate">{product.name}</p>
                                             <p className="text-xs text-muted-foreground truncate">{product.category}</p>
                                         </div>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 w-8 p-0 rounded-full"
-                                            onClick={() => handleAdd(product.firestoreId)}
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
+                                        <input
+                                            type="checkbox"
+                                            className="h-5 w-5 accent-primary"
+                                            checked={draftIds.includes(product.firestoreId)}
+                                            onChange={() => handleToggle(product.firestoreId)}
+                                            aria-label={`Feature ${product.name}`}
+                                        />
                                     </div>
                                 ))}
                                 {filteredProducts.length === 0 && (
@@ -130,7 +143,12 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                         </div>
                     </DialogContent>
                 </Dialog>
+                </div>
             </div>
+
+            <p className="text-xs text-muted-foreground">
+                {dirty ? 'Selection changed. Tap Publish Featured to update psitsavibe.com.' : 'The list below matches the published homepage selection.'}
+            </p>
 
             <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="featured-list">
@@ -140,10 +158,10 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                             ref={provided.innerRef}
                             className="space-y-2"
                         >
-                            {items.map((item, index) => {
-                                const product = products.find(p => p.firestoreId === item.productId);
+                            {draftIds.map((productId, index) => {
+                                const product = products.find(p => p.firestoreId === productId);
                                 return (
-                                    <Draggable key={item.id} draggableId={item.id} index={index}>
+                                    <Draggable key={productId} draggableId={productId} index={index}>
                                         {(provided, snapshot) => (
                                             <div
                                                 ref={provided.innerRef}
@@ -172,7 +190,7 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                                    onClick={() => handleRemove(item.id)}
+                                                    onClick={() => handleToggle(productId)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -183,7 +201,7 @@ export default function FeaturedManager({ featuredItems, onAdd, onRemove, onReor
                             })}
                             {provided.placeholder}
 
-                            {items.length === 0 && (
+                            {draftIds.length === 0 && (
                                 <div className="py-12 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-center px-6 bg-secondary/5">
                                     <Star className="h-8 w-8 text-muted-foreground/30 mb-2" />
                                     <p className="text-sm font-medium text-muted-foreground">No featured products yet</p>

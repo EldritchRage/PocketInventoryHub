@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, UploadCloud, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
@@ -19,9 +19,10 @@ import ProductForm from '@/components/inventory/ProductForm';
 export default function EditProduct() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { products, updateProduct, deleteProduct } = useProducts();
+    const { products, updateProduct, deleteProduct, publishProduct, unpublishProduct } = useProducts();
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [changingPublication, setChangingPublication] = useState(false);
 
     const product = products.find(p => p.firestoreId === id);
 
@@ -62,6 +63,23 @@ export default function EditProduct() {
     const copyStripeId = () => {
         navigator.clipboard.writeText(product.stripePriceId);
         toast.success('Copied to clipboard');
+    };
+
+    const handlePublication = async () => {
+        setChangingPublication(true);
+        try {
+            if (product.published) {
+                await unpublishProduct(id);
+                toast.success('Product unpublished. The inventory record was preserved.');
+            } else {
+                await publishProduct(id);
+                toast.success('Product published to Stripe and the website.');
+            }
+        } catch (err) {
+            toast.error(err?.message || 'Could not change publication status');
+        } finally {
+            setChangingPublication(false);
+        }
     };
 
     return (
@@ -106,6 +124,21 @@ export default function EditProduct() {
                     submitLabel="Save Changes"
                     loading={saving}
                 />
+
+                <Button
+                    variant={product.published ? 'outline' : 'default'}
+                    className="w-full h-12 rounded-xl text-sm font-semibold mt-4"
+                    onClick={handlePublication}
+                    disabled={saving || changingPublication}
+                >
+                    {changingPublication ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Updating...</>
+                    ) : product.published ? (
+                        <><EyeOff className="h-4 w-4 mr-2" />Unpublish Product</>
+                    ) : (
+                        <><UploadCloud className="h-4 w-4 mr-2" />Publish Product</>
+                    )}
+                </Button>
 
                 <Button
                     variant="outline"
